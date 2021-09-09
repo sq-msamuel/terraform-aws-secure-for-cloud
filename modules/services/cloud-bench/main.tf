@@ -12,7 +12,7 @@ data "sysdig_secure_trusted_cloud_identity" "trusted_identity" {
 
 locals {
   // TODO Possibly `accounts` if stackset creates in master as well
-  member_account_ids = var.is_organizational ? toset([for a in data.aws_organizations_organization.org.non_master_accounts : a.id]) : toset([])
+  member_account_ids = var.is_organizational ? [for a in data.aws_organizations_organization.org.non_master_accounts : a.id] : []
 
   benchmark_task_name = var.is_organizational ? "Organization: ${data.aws_organizations_organization.org.id}" : data.aws_caller_identity.me.account_id
 
@@ -26,7 +26,7 @@ locals {
 #----------------------------------------------------------
 
 resource "sysdig_secure_cloud_account" "cloud_account" {
-  for_each = var.is_organizational ? local.member_account_ids : [data.aws_caller_identity.me.account_id]
+  for_each = var.is_organizational ? toset(local.member_account_ids) : [data.aws_caller_identity.me.account_id]
 
   account_id     = each.value
   cloud_provider = "aws"
@@ -34,7 +34,10 @@ resource "sysdig_secure_cloud_account" "cloud_account" {
 }
 
 locals {
-  external_id = try(sysdig_secure_cloud_account.cloud_account[0].external_id, sysdig_secure_cloud_account.cloud_account[data.aws_caller_identity.me.account_id].external_id)
+  external_id = try(
+    sysdig_secure_cloud_account.cloud_account[local.member_account_ids[0]].external_id,
+    sysdig_secure_cloud_account.cloud_account[data.aws_caller_identity.me.account_id].external_id,
+  )
 }
 
 resource "sysdig_secure_benchmark_task" "benchmark_task" {
@@ -96,6 +99,7 @@ resource "aws_iam_role_policy_attachment" "cloudbench_security_audit" {
 resource "aws_cloudformation_stack_set" "stackset" {
   count = var.is_organizational ? 1 : 0
   name  = "SysdigCloudBench"
+  permission_model = "SERVICE_MANAGED"
 
   auto_deployment {
     enabled                          = true
@@ -118,7 +122,6 @@ Resources:
                 sts:ExternalId: ${local.external_id}
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/SecurityAudit"
-      Tags
 TEMPLATE
 }
 // TODO tags in CFT
