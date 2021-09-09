@@ -1,11 +1,12 @@
-variable "account_id" {
-  type        = string
-  description = "the account_id in which to provision the cloud-bench IAM role"
-}
-
 #---------------------------------
 # optionals - with default
 #---------------------------------
+
+variable "is_organizational" {
+  type        = bool
+  default     = false
+  description = "whether secure-for-cloud should be deployed in an organizational setup"
+}
 
 variable "regions" {
   type        = list(string)

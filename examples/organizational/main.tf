@@ -97,24 +97,15 @@ module "cloud_connector" {
 }
 
 
-#
+#-------------------------------------
 # cloud-bench
-# WIP
-#
+#-------------------------------------
 
-#data "aws_caller_identity" "me" {}
-#module "cloud_bench" {
-#  providers = {
-#    aws = aws.member
-#  }
-#  source = "../../modules/services/cloud-bench"
-#
-#  account_id = var.organizational_config.sysdig_secure_for_cloud_member_account_id
-#  tags       = var.tags
-#}
-
-
-
+module "cloud_bench" {
+  source            = "../../modules/services/cloud-bench"
+  is_organizational = true
+  tags              = var.tags
+}
 
 
 #
